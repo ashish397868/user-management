@@ -76,13 +76,12 @@ const Login = () => {
   const renderLoginForm = () => (
     <>
       <div>
-        <label htmlFor="email" className="sr-only">Email address</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+        <label htmlFor="email" className="sr-only">Email address</label>              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 sm:py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 text-sm sm:text-base"
           placeholder="Email address"
           value={formData.email}
           onChange={handleChange}
@@ -172,19 +171,17 @@ const Login = () => {
       </div>
     </div>
   );
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-3xl font-bold text-center text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8 p-4 sm:p-8 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900">
           {resetMode === 'login' ? 'Sign in to your account' :
            resetMode === 'forgot' ? 'Reset your password' :
            resetMode === 'verify' ? 'Enter verification code' :
            'Set new password'}
         </h2>
-        
-        {message.text && (
-          <div className={`rounded-md p-4 ${
+          {message.text && (
+          <div className={`rounded-md p-3 sm:p-4 text-sm sm:text-base ${
             message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
           }`}>
             {message.text}
