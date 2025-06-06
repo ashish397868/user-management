@@ -1,0 +1,170 @@
+const User = require("../models/user");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const handleLogin = async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    const token = jwt.sign({ name: user.name, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
+    res.status(200).json({ message: "Login successful", token });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const handleSignup = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
+    const newUser = new User({
+      name,
+      email,
+      password,
+    });
+
+    await newUser.save();
+    const token = jwt.sign({ name: newUser.name, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
+    res.status(201).json({ message: "User created successfully", token });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const handleLogout = (req, res) => {
+  try {
+    res.clearCookie('token');
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const { sendResetCode } = require('../utility/emailService');
+
+const handleForgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Generate 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save reset code to user
+    user.resetCode = resetCode;
+    user.resetCodeExpires = resetCodeExpires;
+    await user.save();
+
+    // Send email
+    const emailSent = await sendResetCode(email, resetCode);
+    if (!emailSent) {
+      return res.status(500).json({ error: "Failed to send reset code" });
+    }
+
+    res.status(200).json({ message: "Reset code sent to email" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const handleVerifyResetCode = async (req, res) => {
+  const { email, resetCode } = req.body;
+
+  try {
+    const user = await User.findOne({
+      email,
+      resetCode,
+      resetCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset code" });
+    }
+
+    res.status(200).json({ message: "Reset code verified successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const handleResetPassword = async (req, res) => {
+  console.log('Reset password request received:', req.body);
+  const { email, resetCode, newPassword } = req.body;
+
+  if (!email || !resetCode || !newPassword) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    console.log('Finding user with email and reset code...');
+    const user = await User.findOne({
+      email,
+      resetCode,
+      resetCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      console.log('No user found or reset code expired');
+      return res.status(400).json({ error: "Invalid or expired reset code" });
+    }
+
+    console.log('User found, hashing new password...');
+    user.password = newPassword;
+    user.resetCode = null;
+    user.resetCodeExpires = null;
+
+    console.log('Saving updated user...');
+    await user.save();
+
+    console.log('Password reset successful');
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error('Error in handleResetPassword:', err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+module.exports = {
+  handleLogin,
+  handleSignup,
+  handleLogout,
+  handleForgotPassword,
+  handleVerifyResetCode,
+  handleResetPassword,
+};
