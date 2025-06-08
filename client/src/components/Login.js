@@ -35,11 +35,10 @@ const Login = () => {
           withCredentials: true
         });
         login(response.data);
-        navigate('/');
-      } else if (resetMode === 'forgot') {
-        const response = await axios.post(`${url}/forgot-password`, { email: formData.email });
+        navigate('/');      } else if (resetMode === 'forgot') {
+        await axios.post(`${url}/forgot-password`, { email: formData.email });
         setMessage({ type: 'success', text: 'Reset code sent to your email' });
-        setResetMode('verify');      } else if (resetMode === 'verify') {
+        setResetMode('verify');} else if (resetMode === 'verify') {
         console.log('Verifying reset code:', { 
           email: formData.email, 
           resetCode 

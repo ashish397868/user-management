@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "concurrently": "^9.1.2"
-  },
-  "scripts": {
-    "start": "concurrently \"npm run dev --prefix ./server\" \"npm start --prefix ./client\"",
-    "install-deps": "npm install && npm install --prefix ./client && npm install --prefix ./server"
-  }
-}
