@@ -1,11 +1,14 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto"); // For generating random device IDs
+require("dotenv").config(); // Ensure environment variables are loaded
+const { sendEmail } = require("../utility/sendEmail");
 
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).json({ error: "All fields are required" });
+    return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
@@ -19,7 +22,18 @@ const handleLogin = async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ name: user.name, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const userAgent = req.headers["user-agent"]; // Get user-agent from request headers
+    const deviceId = crypto.randomBytes(16).toString("hex"); // Generate a random device ID
+
+    // Save device ID to the user in the database
+    user.deviceId = deviceId;
+    await user.save();
+
+    const token = jwt.sign(
+      { name: user.name, email, userAgent, deviceId }, // Include user-agent and device ID in the payload
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
     res.status(200).json({ message: "Login successful", token });
@@ -48,8 +62,25 @@ const handleSignup = async (req, res) => {
       password,
     });
 
+    const userAgent = req.headers["user-agent"]; // Get user-agent from request headers
+    const deviceId = crypto.randomBytes(16).toString("hex"); // Generate a random device ID
+
+    // Save device ID to the user in the database
+    newUser.deviceId = deviceId;
     await newUser.save();
-    const token = jwt.sign({ name: newUser.name, email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    // Send welcome email
+    await sendEmail({
+      to: email,
+      subject: "Welcome to Our Service",
+      html: `<h1>Hello ${name}</h1><p>Thank you for signing up! We're excited to have you on board.</p><p>Best regards,<br>The Team</p>`,
+    });
+
+    const token = jwt.sign(
+      { name, email, userAgent, deviceId }, // Include user-agent and device ID in the payload
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
     res.status(201).json({ message: "User created successfully", token });
@@ -61,7 +92,7 @@ const handleSignup = async (req, res) => {
 
 const handleLogout = (req, res) => {
   try {
-    res.clearCookie('token');
+    res.clearCookie("token");
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
     console.error(err);
@@ -69,7 +100,7 @@ const handleLogout = (req, res) => {
   }
 };
 
-const { sendResetCode } = require('../utility/emailService');
+const { sendResetCode } = require("../utility/emailService");
 
 const handleForgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -109,7 +140,7 @@ const handleVerifyResetCode = async (req, res) => {
     const user = await User.findOne({
       email,
       resetCode,
-      resetCodeExpires: { $gt: Date.now() }
+      resetCodeExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -124,7 +155,7 @@ const handleVerifyResetCode = async (req, res) => {
 };
 
 const handleResetPassword = async (req, res) => {
-  console.log('Reset password request received:', req.body);
+  console.log("Reset password request received:", req.body);
   const { email, resetCode, newPassword } = req.body;
 
   if (!email || !resetCode || !newPassword) {
@@ -132,30 +163,30 @@ const handleResetPassword = async (req, res) => {
   }
 
   try {
-    console.log('Finding user with email and reset code...');
+    console.log("Finding user with email and reset code...");
     const user = await User.findOne({
       email,
       resetCode,
-      resetCodeExpires: { $gt: Date.now() }
+      resetCodeExpires: { $gt: Date.now() },
     });
 
     if (!user) {
-      console.log('No user found or reset code expired');
+      console.log("No user found or reset code expired");
       return res.status(400).json({ error: "Invalid or expired reset code" });
     }
 
-    console.log('User found, hashing new password...');
+    console.log("User found, hashing new password...");
     user.password = newPassword;
     user.resetCode = null;
     user.resetCodeExpires = null;
 
-    console.log('Saving updated user...');
+    console.log("Saving updated user...");
     await user.save();
 
-    console.log('Password reset successful');
+    console.log("Password reset successful");
     res.status(200).json({ message: "Password reset successfully" });
   } catch (err) {
-    console.error('Error in handleResetPassword:', err);
+    console.error("Error in handleResetPassword:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
