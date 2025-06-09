@@ -14,13 +14,13 @@ const UserSchema = new Schema(
     },
     password: {
       type: String,
-      required: function() {
-        return !this.googleId; // Password only required for local auth
-      }
+      required: function () {
+        return !this.googleId; // Password only required for local auth users
+      },
     },
     picture: {
       type: String,
-      default: null
+      default: null,
     },
     role: {
       type: String,
@@ -42,9 +42,9 @@ const UserSchema = new Schema(
     },
     authProvider: {
       type: String,
-      enum: ['local', 'google'],
-      default: 'local'
-    }
+      enum: ["local", "google"],
+      default: "local",
+    },
   },
   { timestamps: true }
 );

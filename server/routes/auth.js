@@ -17,8 +17,6 @@ const generateToken = (user) => {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// @desc Auth with Google
-// @route GET /auth/google
 router.get("/google", 
   passport.authenticate("google", { 
     scope: ["profile", "email"],
@@ -26,8 +24,6 @@ router.get("/google",
   })
 );
 
-// @desc Google auth callback
-// @route GET /auth/google/callback
 router.get("/google/callback",
   passport.authenticate("google", { 
     session: false,

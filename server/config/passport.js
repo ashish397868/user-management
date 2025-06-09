@@ -1,5 +1,5 @@
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const User = require("../models/user"); // Make sure path matches your file
+const User = require("../models/user");
 
 module.exports = function (passport) {
   passport.use(
@@ -10,51 +10,50 @@ module.exports = function (passport) {
         callbackURL: "http://localhost:5000/auth/google/callback", // Must match Google Console
       },
       async (accessToken, refreshToken, profile, done) => {
-        console.log('Google Profile:', profile); // Debug log
-        
+        // console.log("Google Profile:", profile); // Debug log
+
         try {
           // Check if user already exists with this Google ID
           let user = await User.findOne({ googleId: profile.id });
-          
+
           if (user) {
             // Update user's profile data
             user.name = profile.displayName || profile.name.givenName;
             user.picture = profile.photos?.[0]?.value;
-            user.authProvider = 'google';
+            // user.authProvider = "google";//no need because if user exists, they are already linked to Google
             await user.save();
-            console.log('Updated existing user:', user);
-            return done(null, user);
+            // console.log("Updated existing user:", user);
+            return done(null, user);//user ko passport me bhej do as authenticated.
           }
-          
+
           // Check if user exists with same email
-          user = await User.findOne({ email: profile.emails[0].value });
-          
+          user = await User.findOne({ email: profile.emails[0].value });//
+
           if (user) {
             // Link Google account to existing user
             user.googleId = profile.id;
-            user.authProvider = 'google';
+            user.authProvider = "google";
             user.picture = profile.photos?.[0]?.value;
             await user.save();
-            console.log('Linked existing user:', user);
+            // console.log("Linked existing user:", user);
             return done(null, user);
           }
-          
+
           // Create new user - THIS IS THE CRITICAL PART
           const newUser = new User({
             googleId: profile.id,
             name: profile.displayName || profile.name.givenName,
             email: profile.emails[0].value,
             picture: profile.photos?.[0]?.value,
-            authProvider: 'google'
-            // NO PASSWORD FIELD - this was causing validation errors
+            authProvider: "google",
+            // NO PASSWORD FIELD - google auth users don't have passwords
           });
-          
+
           const savedUser = await newUser.save();
-          console.log('Created new user:', savedUser);
+          // console.log("Created new user:", savedUser);
           done(null, savedUser);
-          
         } catch (err) {
-          console.error('Passport Strategy Error:', err);
+          console.error("Passport Strategy Error:", err);
           done(err, null);
         }
       }

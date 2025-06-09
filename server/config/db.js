@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
-require("dotenv").config(); // Load .env variables
 
 const connectDB = async () => {
   try {
-    // You can keep serverSelectionTimeoutMS if you want faster connection failover
     await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Optional: timeout after 5s
+      serverSelectionTimeoutMS: 5000, // Optional: timeout after 5s, Agar 5 seconds tak MongoDB connect nahi hoti, toh app close ho jayegi
     });
 
     console.log("✅ MongoDB Connected");

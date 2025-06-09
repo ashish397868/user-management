@@ -1,9 +1,8 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto"); // For generating random device IDs
-require("dotenv").config(); // Ensure environment variables are loaded
 const { sendEmail } = require("../utility/sendEmail");
+const crypto = require("crypto");
 
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -17,7 +16,7 @@ const handleLogin = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
@@ -100,8 +99,6 @@ const handleLogout = (req, res) => {
   }
 };
 
-const { sendResetCode } = require("../utility/emailService");
-
 const handleForgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -121,7 +118,12 @@ const handleForgotPassword = async (req, res) => {
     await user.save();
 
     // Send email
-    const emailSent = await sendResetCode(email, resetCode);
+    const emailSent = await sendEmail({
+      to: email,
+      subject: "Password Reset Code",
+      html: `<h1>Password Reset</h1><p>Your password reset code is: <strong>${resetCode}</strong></p><p>This code will expire in 10 minutes.</p>`,
+    });
+
     if (!emailSent) {
       return res.status(500).json({ error: "Failed to send reset code" });
     }
@@ -191,6 +193,28 @@ const handleResetPassword = async (req, res) => {
   }
 };
 
+const handleStatus=(req, res) => {
+  res.status(200).json({ user: req.user });
+}
+
+const handleGetCurrentUserProfile=async (req, res) => {
+  try {
+    res.json({ 
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+        picture: req.user.picture,
+        authProvider: req.user.authProvider
+      }
+    });
+  } catch (error) {
+    console.error('Error in /api/me:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 module.exports = {
   handleLogin,
   handleSignup,
@@ -198,4 +222,6 @@ module.exports = {
   handleForgotPassword,
   handleVerifyResetCode,
   handleResetPassword,
+  handleStatus,
+  handleGetCurrentUserProfile
 };

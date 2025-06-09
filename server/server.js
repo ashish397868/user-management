@@ -1,4 +1,5 @@
 //server.js
+dotenv = require('dotenv').config();// Load environment variables
 const express = require('express');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
@@ -7,8 +8,6 @@ const userRouter = require('./routes/user');
 const adminRouter = require('./routes/admin'); 
 const home = require('./routes/home'); 
 const passport = require('passport');
-dotenv = require('dotenv');
-dotenv.config();
 
 // Passport config
 require('./config/passport')(passport);

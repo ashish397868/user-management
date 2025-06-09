@@ -13,7 +13,6 @@ const transporter = nodemailer.createTransport({
  * Send an email
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
-//  * @param {string} text - Plain text body (optional)
  * @param {string} html - HTML body (optional)
  */
 async function sendEmail({ to, subject, text, html }) {
@@ -22,13 +21,13 @@ async function sendEmail({ to, subject, text, html }) {
       from: process.env.EMAIL_USER, // sender address
       to,
       subject,
-      // text,
-      html,
+      html
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
-    return info;
+    // console.log('Email sent: %s', info.messageId);
+    // return info;
+    return true;
   } catch (error) {
     console.error('Error sending email:', error);
     throw error;
@@ -38,4 +37,3 @@ async function sendEmail({ to, subject, text, html }) {
 module.exports = {
   sendEmail
 }
-
