@@ -4,6 +4,21 @@ const jwt = require("jsonwebtoken");
 const { sendEmail } = require("../utility/sendEmail");
 const crypto = require("crypto");
 
+const generateToken = (user, userAgent) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      userAgent,
+      deviceId: user.deviceId,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -16,26 +31,30 @@ const handleLogin = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const isMatch = bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const userAgent = req.headers["user-agent"]; // Get user-agent from request headers
-    const deviceId = crypto.randomBytes(16).toString("hex"); // Generate a random device ID
+    const userAgent = req.headers["user-agent"];
+    const deviceId = crypto.randomBytes(16).toString("hex");
 
-    // Save device ID to the user in the database
     user.deviceId = deviceId;
     await user.save();
 
-    const token = jwt.sign(
-      { name: user.name, email, userAgent, deviceId }, // Include user-agent and device ID in the payload
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = generateToken(user, userAgent);
 
-    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
-    res.status(200).json({ message: "Login successful", token });
+    res.status(200).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        picture: user.picture,
+        authProvider: user.authProvider,
+      },
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
@@ -61,11 +80,10 @@ const handleSignup = async (req, res) => {
       password,
     });
 
-    const userAgent = req.headers["user-agent"]; // Get user-agent from request headers
-    const deviceId = crypto.randomBytes(16).toString("hex"); // Generate a random device ID
-
-    // Save device ID to the user in the database
+    const userAgent = req.headers["user-agent"];
+    const deviceId = crypto.randomBytes(16).toString("hex");
     newUser.deviceId = deviceId;
+    
     await newUser.save();
 
     // Send welcome email
@@ -75,14 +93,19 @@ const handleSignup = async (req, res) => {
       html: `<h1>Hello ${name}</h1><p>Thank you for signing up! We're excited to have you on board.</p><p>Best regards,<br>The Team</p>`,
     });
 
-    const token = jwt.sign(
-      { name, email, userAgent, deviceId }, // Include user-agent and device ID in the payload
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = generateToken(newUser, userAgent);
 
-    res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" });
-    res.status(201).json({ message: "User created successfully", token });
+    res.status(201).json({ 
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        picture: newUser.picture,
+        authProvider: newUser.authProvider
+      }
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
@@ -193,27 +216,27 @@ const handleResetPassword = async (req, res) => {
   }
 };
 
-const handleStatus=(req, res) => {
+const handleStatus = (req, res) => {
   res.status(200).json({ user: req.user });
-}
+};
 
-const handleGetCurrentUserProfile=async (req, res) => {
+const handleGetCurrentUserProfile = async (req, res) => {
   try {
-    res.json({ 
+    res.json({
       user: {
         id: req.user._id,
         name: req.user.name,
         email: req.user.email,
         role: req.user.role,
         picture: req.user.picture,
-        authProvider: req.user.authProvider
-      }
+        authProvider: req.user.authProvider,
+      },
     });
   } catch (error) {
-    console.error('Error in /api/me:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error in /api/me:", error);
+    res.status(500).json({ message: "Server error" });
   }
-}
+};
 
 module.exports = {
   handleLogin,
@@ -223,5 +246,5 @@ module.exports = {
   handleVerifyResetCode,
   handleResetPassword,
   handleStatus,
-  handleGetCurrentUserProfile
+  handleGetCurrentUserProfile,
 };

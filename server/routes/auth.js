@@ -3,18 +3,22 @@ const express = require("express");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
+const crypto = require("crypto");
 
 // Generate JWT token helper
-const generateToken = (user) => {
-  const payload = {
-    userId: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    picture: user.picture,
-    authProvider: user.authProvider
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+const generateToken = (user, userAgent) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      userAgent,
+      deviceId: user.deviceId
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
 router.get("/google", 
@@ -29,9 +33,16 @@ router.get("/google/callback",
     session: false,
     failureRedirect: "http://localhost:3000/login?error=google_failed"
   }),
-  (req, res) => {
+  async (req, res) => {
     try {
-      const token = generateToken(req.user);
+      const userAgent = req.headers["user-agent"];
+      const deviceId = crypto.randomBytes(16).toString("hex");
+      
+      // Update user with device ID
+      req.user.deviceId = deviceId;
+      await req.user.save();
+
+      const token = generateToken(req.user, userAgent);
       res.redirect(`http://localhost:3000/auth/success?token=${token}`);
     } catch (error) {
       console.error('Token generation error:', error);

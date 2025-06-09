@@ -1,6 +1,6 @@
-const {Router}=require('express')
-const {authMiddleware} = require('../middleware/auth');
-const userRouter=Router();
+const { Router } = require('express');
+const { authMiddleware } = require('../middleware/auth');
+const userRouter = Router();
 const {
   handleLogin,
   handleSignup,
@@ -12,13 +12,18 @@ const {
   handleGetCurrentUserProfile
 } = require('../controllers/userController');
 
-userRouter.post('/signup',handleSignup);
-userRouter.post('/login',handleLogin);
-userRouter.post('/logout',handleLogout);
+// Auth routes
+userRouter.post('/signup', handleSignup);
+userRouter.post('/login', handleLogin);
+userRouter.post('/logout', handleLogout);
+
+// Password reset routes
 userRouter.post('/forgot-password', handleForgotPassword);
 userRouter.post('/verify-reset-code', handleVerifyResetCode);
 userRouter.post('/reset-password', handleResetPassword);
-userRouter.get('/auth-status', authMiddleware,handleStatus );//endpoint to check authentication status
-userRouter.get('/api/me', authMiddleware, handleGetCurrentUserProfile);//Get current user profile
 
-module.exports=userRouter;
+// Protected routes
+userRouter.get('/auth-status', authMiddleware, handleStatus);
+userRouter.get('/api/me', authMiddleware, handleGetCurrentUserProfile);
+
+module.exports = userRouter;

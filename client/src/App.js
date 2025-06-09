@@ -1,23 +1,12 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
+import AdminDashboard from './components/AdminDashboard';
 import AuthSuccess from './components/AuthSuccess';
 import Navbar from './components/Navbar';
-import { useAuth } from './context/AuthContext';
-
-// PrivateRoute component
-const PrivateRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
-  return isAuthenticated ? children : <Navigate to="/login" />;
-};
+import PrivateRoute from './components/PrivateRoute';
 
 function App() {
   return (
@@ -40,12 +29,46 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/auth/success" element={<AuthSuccess />} />
-              <Route path="/dashboard" element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              } />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <PrivateRoute allowedRoles={['user', 'admin']}>
+                    <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <div>User Management Page</div>
+                  </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/admin/roles" 
+                element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <div>Role Management Page</div>
+                  </PrivateRoute>
+                }
+              />
+              <Route 
+                path="/admin/settings" 
+                element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <div>System Settings Page</div>
+                  </PrivateRoute>
+                }
+              />
             </Routes>
           </main>
           <footer className="bg-gray-800 text-white py-4">

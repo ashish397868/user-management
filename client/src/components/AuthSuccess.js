@@ -22,12 +22,15 @@ const AuthSuccess = () => {
             headers: {
               'Authorization': `Bearer ${token}`
             }
-          });
-
-          if (response.data && response.data.user) {
+          });            if (response.data && response.data.user) {
             // Login the user with token and user data
             login(token, response.data.user);
-            navigate('/dashboard');
+            // Redirect based on user role
+            if (response.data.user.role === 'admin') {
+              navigate('/admin/dashboard');
+            } else {
+              navigate('/dashboard');
+            }
           } else {
             setError('Invalid user data received');
             setTimeout(() => navigate('/login'), 3000);

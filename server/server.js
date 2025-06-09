@@ -1,5 +1,5 @@
 //server.js
-dotenv = require('dotenv').config();// Load environment variables
+const dotenv = require('dotenv').config();// Load environment variables
 const express = require('express');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
@@ -16,16 +16,24 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(passport.initialize());
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 
 // Connect to MongoDB
 connectDB();
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
 
 // Routes
 app.use('/', userRouter);  // This will handle /api/me
